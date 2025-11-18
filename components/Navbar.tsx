@@ -1,111 +1,185 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { Menu, X } from "lucide-react";
-import { ModeToggle } from "./providers/theme-switcher";
-import Image from "next/image";
-
-const menuItems = [
-  { name: "Home", path: "/" },
-  { name: "TechStack", path: "#TechStack" },
-  { name: "Contact", path: "/" },
-  { name: "Projects", path: "#projects" },
-];
+import Link from 'next/link';
+import { useTheme } from 'next-themes';
+import { Moon, Sun, LogOut, User, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { RouteConstUrls, USER_ROLES } from '@/lib/constants';
+import { toast } from 'sonner';
 
 export function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const { user, profile, signOut } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  useEffect(() => setMounted(true), []);
+
+  const handleLogoutClick = () => {
+    setShowLogoutDialog(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      toast.success('Logged out successfully', {
+        description: 'See you next time!'
+      });
+      router.push(RouteConstUrls.adminLogin);
+    } catch (error: any) {
+      toast.error('Logout failed', {
+        description: error?.message ?? 'Please try again'
+      });
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutDialog(false);
+    }
+  };
+
+  const isActive = (route: string) => pathname === route;
+  const isAdmin = profile?.role === USER_ROLES;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50">
-      <motion.nav
-        initial={{
-          backdropFilter: "blur(0px)",
-          backgroundColor: "rgba(255, 255, 255, 0)",
-        }}
-        animate={{
-          backdropFilter: isScrolled ? "blur(10px) " : "blur(0px)",
-          backgroundColor: isScrolled
-            ? "rgba(255, 255, 255, 0.1)" // or rgba(0,0,0,0.2) for dark tint
-            : "rgba(255, 255, 255, 0)",
-        }}
-        transition={{ duration: 0.3 }}
-        className={`${isScrolled ? "shadow-md" : ""}px-4 py-3 sm:px-6 lg:px-8 backdrop-blur-lg dark:bg-slate-900/20`}
-      >
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <motion.span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent" whileHover={{ scale: 1.05 }}>
-                <Image alt="888" width={50} height={50} className="rounded-full" src="/core/888.png"></Image>
-              </motion.span>
+    <>
+      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/" className="text-xl font-bold text-primary hover:opacity-80 transition-opacity">
+            Tyro Exams
+          </Link>
+
+          <div className="flex items-center gap-4">
+            {/* HOME BUTTON */}
+            <Link
+              href={isAdmin ? RouteConstUrls.adminDashboard : RouteConstUrls.home}
+            >
+              <Button
+                className="cursor-pointer"
+                variant={
+                  isActive(isAdmin ? RouteConstUrls.adminDashboard : RouteConstUrls.home)
+                    ? "default"
+                    : "ghost"
+                }
+              >
+                Home
+              </Button>
             </Link>
-          </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {menuItems.map((item) => (
-              <Link key={item.name} href={item.path} className="relative text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors">
-                <motion.span whileHover={{ scale: 1.05 }}>{item.name}</motion.span>
-                <motion.div className="absolute -bottom-1 left-0 h-0.5 bg-cyan-400" initial={{ width: 0 }} whileHover={{ width: "100%" }} transition={{ duration: 0.3 }} />
-              </Link>
-            ))}
-          </div>
+            {/* ADMIN ONLY BUTTONS */}
+            {user && isAdmin && (
+              <>
+                <Link href={RouteConstUrls.adminUploadExcel}>
+                  <Button
+                    className="cursor-pointer"
+                    variant={isActive(RouteConstUrls.adminUploadExcel) ? "default" : "ghost"}
+                  >
+                    Upload Excel
+                  </Button>
+                </Link>
 
-          <div className="hidden md:flex items-center space-x-4">
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
-              <ModeToggle />
-            </motion.button>
-          </div>
+                <Link href={RouteConstUrls.adminExams}>
+                  <Button
+                    className="cursor-pointer"
+                    variant={isActive(RouteConstUrls.adminExams) ? "default" : "ghost"}
+                  >
+                    Exam List
+                  </Button>
+                </Link>
+              </>
+            )}
 
-          {/* Mobile menu button */}
-          <div className="flex md:hidden">
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white focus:outline-none">
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            {/* USER INFO + LOGOUT */}
+            {user && (
+              <>
+                <div className="flex items-center gap-2 text-sm px-3 py-2 rounded-md bg-muted/50">
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline font-medium">{user.email}</span>
+                </div>
+
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleLogoutClick}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  title="Logout"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+
+            {/* THEME TOGGLE */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title="Toggle theme"
+            >
+              {mounted && (
+                <span className="relative inline-flex">
+                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                </span>
+              )}
+            </Button>
           </div>
         </div>
+      </nav>
 
-        {/* Mobile Navigation */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg rounded-lg mt-2"
-            >
-              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.path}
-                    className="block px-3 py-2 text-base font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 rounded-md transition-colors"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                <div className="px-3 py-2">
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
-                    <ModeToggle />
-                  </motion.button>
-                </div>
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.nav>
-    </header>
+              <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription>
+              Are you sure you want to log out? You'll need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoggingOut}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmLogout}
+              disabled={isLoggingOut}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isLoggingOut ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-background border-t-transparent mr-2"></div>
+                  Logging out...
+                </>
+              ) : (
+                <>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

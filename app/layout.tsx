@@ -1,33 +1,48 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "@/components/providers/theme-provider";
+// app/layout.tsx
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { Toaster } from 'sonner';
+import { NavigationLoader } from '@/components/NavigationLoader';
+import { TopLoadingBar } from '@/components/TopLoadingBar';
+import { Navbar } from '@/components/Navbar';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { RouteLoader } from '@/components/RouteLoader';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata = {
-  title: "Mukesh Unique",
-  description: "mukesh888",
+export const metadata: Metadata = {
+  title: 'Exam Management System',
+  description: 'Manage and view exam results',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html suppressHydrationWarning lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased `}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        {/* Top loading bar - appears on every route change */}
+        <TopLoadingBar />
+        {/* <NavigationLoader  />
+        <RouteLoader  /> */}
+        
+         <ThemeProvider attribute="class">
+
+          <Navbar />
+
+        {children}
+        
+        {/* Toast notifications */}
+        <Toaster 
+          position="top-right" 
+          richColors 
+          closeButton 
+          duration={3000}
+          />
+          </ThemeProvider>
       </body>
     </html>
   );
